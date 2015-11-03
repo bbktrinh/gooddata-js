@@ -17,6 +17,7 @@
     "bower": "1.7.9",
     "eslint": "0.24.1",
     "fast-levenshtein": "2.0.4",
+    "fetch-mock": "^2.2.3",
     "grunt": "0.4.5",
     "grunt-bump": "0.6.0",
     "grunt-cli": "1.2.0",
@@ -50,6 +51,7 @@
     "webpack-dev-server": "1.16.1"
   },
   "dependencies": {
+    "isomorphic-fetch": "^2.2.0",
     "invariant": "2.2.1",
     "lodash": "4.16.1",
     "md5": "2.2.1"
