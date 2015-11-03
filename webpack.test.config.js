@@ -1,4 +1,6 @@
 // separate file so we can refer to it from webpack.config.js and karma.conf.js
+var webpack = require('webpack');
+var path = require('path');
 
 module.exports = {
     devtool: 'cheap-inline-source-map',
@@ -11,6 +13,9 @@ module.exports = {
 
         modulesDirectories: ['src', 'node_modules']
     },
+    plugins: [
+        new webpack.NormalModuleReplacementPlugin(/^fetch-mock$/, path.resolve( __dirname, 'node_modules' , 'fetch-mock/client.js'))
+    ],
 
     module: {
         loaders: [

@@ -2,8 +2,8 @@
 import * as xhr from '../src/xhr';
 import fetchMock from 'fetch-mock';
 
-describe.only('xhr', () => {
-    describe('$.ajax request', () => {
+describe('xhr', () => {
+    describe.only('$.ajax request', () => {
         beforeEach(() => {
             fetchMock.mock('/some/url', 200);
         });
