@@ -8,11 +8,10 @@ describe('xhr', () => {
             fetchMock.mock('/some/url', 200);
         });
 
-        it('should handle successful request', done => {
-            expect(xhr.ajax('/some/url')).done(function(data, textStatus, xhrObj) {
+        it('should handle successful request', () => {
+            return xhr.ajax('/some/url').then((data, textStatus, xhrObj) => {
                 expect(data).to.be('hello');
                 expect(xhrObj.status).to.be(200);
-                done();
             });
         });
     });
