@@ -126,10 +126,28 @@ export function ajaxSetup(settings) {
 }
 
 export function ajax(url, settings = {}) {
-    if (isPlainObject(settings.body)) { // TODO data
-        settings.body = JSON.stringify(settings.body);
+    let finalUrl;
+    let finalSettings;
+    let headers = new Headers({
+        'Accept': 'application/json; charset=utf-8'
+    });
+
+    if (isPlainObject(url)) { // TODO jquery compat
+        finalUrl = url.url;
+        delete url.url;
+        finalSettings = url;
+    } else {
+        finalUrl = url;
+        finalSettings = settings;
     }
-    return fetch(url, settings);
+
+    // TODO merge with headers from settings
+    finalSettings.headers = headers;
+
+    if (isPlainObject(finalSettings.body)) { // TODO data for jquery compat
+        settings.body = JSON.stringify(finalSettings.body);
+    }
+    return fetch(finalUrl, finalSettings);
 }
 
 /**
