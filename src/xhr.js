@@ -125,8 +125,11 @@ export function ajaxSetup(settings) {
     }, settings);
 }
 
-export function ajax(url) { // , settings) {
-    return fetch(url);
+export function ajax(url, settings = {}) {
+    if (isPlainObject(settings.body)) { // TODO data
+        settings.body = JSON.stringify(settings.body);
+    }
+    return fetch(url, settings);
 }
 
 /**
