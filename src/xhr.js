@@ -38,45 +38,94 @@ function enrichSettingWithCustomDomain(settings, domain) {
     return settings;
 }
 
-function retryAjaxRequest(req, deferred) {
-    // still use our extended ajax, because is still possible to fail recoverably in again
-    // e.g. request -> 401 -> token renewal -> retry request -> 202 (polling) -> retry again after delay
-    /*eslint-disable block-scoped-var*/ // we don't want to declare all functions inside ajax's fn scope
-    ajax(req).done(function ajaxDone(data, textStatus, xhrObj) {
-        deferred.resolve(data, textStatus, xhrObj);
-    }).fail(function ajaxFail(xhrObj, textStatus, err) {
-        deferred.reject(xhrObj, textStatus, err);
-    });
-    /*eslint-enable block-scoped-var*/
-}
-
-function continueAfterTokenRequest(req, deferred) {
-    tokenRequest.done(function tokenRequestDone() {
-        retryAjaxRequest(req, deferred);
-    }).fail(function tokenRequestFail(xhrObj, textStatus, err) {
-        if (xhrObj.status !== 401) {
-            deferred.reject(xhrObj, textStatus, err);
+function continueAfterTokenRequest(req) {
+    tokenRequest.then(response => {
+        if (!response.ok) {
+            throw new Error('Unauthorized');
         }
+
+        /* eslint-disable block-scoped-var */ // TODO solve
+        retryAjaxRequest(req);
+        /* eslint-enable block-scoped-var */
     });
 }
 
-function handleUnauthorized(req, deferred) {
+function handleUnauthorized(req) {
     if (!tokenRequest) {
         // Create only single token request for any number of waiting request.
         // If token request exist, just listen for it's end.
-        tokenRequest = $.ajax(enrichSettingWithCustomDomain({ url: '/gdc/account/token/' }, config.domain)).always(function alwayCb() {
+        // TODO add:
+        //  enrichSettingWithCustomDomain(
+        //    { url: '/gdc/account/token/' }, config.domain
+        //  )
+
+        tokenRequest = fetch('/gdc/account/token', { credentials: 'include' }).then(response => {
             tokenRequest = null;
-        }).fail(function failTokenRequest(xhrObj, textStatus, err) {
-            // unauthorized when retrieving token -> not logged
-            if ((xhrObj.status === 401) && (isFunction(req.unauthorized))) {
-                req.unauthorized(xhrObj, textStatus, err, deferred);
-                return;
-            }
+            // TODO jquery compat - allow to attach unauthorized callback and call it if attached
+            // if ((xhrObj.status === 401) && (isFunction(req.unauthorized))) {
+            //     req.unauthorized(xhrObj, textStatus, err, deferred);
+            //     return;
+            // }
             // unauthorized handler is not defined or not http 401
-            deferred.reject(xhrObj, textStatus, err);
+            // unauthorized when retrieving token -> not logged
+            if (!response.ok) {
+                throw new Error('Unauthorized');
+            }
         });
     }
-    continueAfterTokenRequest(req, deferred);
+    continueAfterTokenRequest(req);
+}
+
+export function ajax(url, settings = {}) {
+    let finalUrl;
+    let finalSettings;
+    const headers = new Headers({
+        'Accept': 'application/json; charset=utf-8',
+        'Content-Type': 'application/json'
+    });
+
+    if (isPlainObject(url)) { // TODO jquery compat
+        finalUrl = url.url;
+        delete url.url;
+        finalSettings = url;
+    } else {
+        finalUrl = url;
+        finalSettings = settings;
+    }
+
+    // TODO merge with headers from settings
+    finalSettings.headers = headers;
+
+    // TODO move to jquery compat layer
+    finalSettings.body = (finalSettings.data) ? finalSettings.data : finalSettings.body;
+
+    if (isPlainObject(finalSettings.body)) {
+        settings.body = JSON.stringify(finalSettings.body);
+    }
+
+    if (tokenRequest) {
+        continueAfterTokenRequest(finalSettings, promise);
+        return promise;
+    }
+
+    // TODO move to settings object creation
+    finalSettings.credetials = 'include';
+
+    const promise = fetch(finalUrl, finalSettings).then(response => {
+        if (response.status === 401) {
+            handleUnauthorized(finalSettings);
+        }
+
+        return response;
+    }); // TODO handle polling
+
+    return promise;
+}
+
+function retryAjaxRequest(req) {
+    // still use our extended ajax, because is still possible to fail recoverably in again
+    // e.g. request -> 401 -> token renewal -> retry request -> 202 (polling) -> retry again after delay
+    return ajax(req);
 }
 
 function handlePolling(req, deferred) {
@@ -125,30 +174,6 @@ export function ajaxSetup(settings) {
     }, settings);
 }
 
-export function ajax(url, settings = {}) {
-    let finalUrl;
-    let finalSettings;
-    let headers = new Headers({
-        'Accept': 'application/json; charset=utf-8'
-    });
-
-    if (isPlainObject(url)) { // TODO jquery compat
-        finalUrl = url.url;
-        delete url.url;
-        finalSettings = url;
-    } else {
-        finalUrl = url;
-        finalSettings = settings;
-    }
-
-    // TODO merge with headers from settings
-    finalSettings.headers = headers;
-
-    if (isPlainObject(finalSettings.body)) { // TODO data for jquery compat
-        settings.body = JSON.stringify(finalSettings.body);
-    }
-    return fetch(finalUrl, finalSettings);
-}
 
 /**
  * Same api as jQuery.ajax - arguments (url, settings) or (settings) with url inside

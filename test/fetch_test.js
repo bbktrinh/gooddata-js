@@ -37,15 +37,21 @@ describe.only('fetch', () => {
         it('should support url in settings', () => { // TODO deprecate?
             fetchMock.mock('/some/url', 200);
             return xhr.ajax({url: '/some/url'}).then(r => {
-                expect(r.status).to.be(200)
+                expect(r.status).to.be(200);
             });
         });
 
         it('should have accept header set on application/json', () => {
             fetchMock.mock('/some/url', 200);
-            xhr.ajax('/some/url')
+            xhr.ajax('/some/url');
             expect(fetchMock.calls()[0][1].headers.get('accept')).to.be('application/json; charset=utf-8');
         });
     });
+
+    // describe('xhr.ajax unauthorized handling', () => {
+    //     it('should renew token when TT expires', () => {
+    //         return xhr.ajax('/some/url')
+    //     });
+    // });
 });
 
