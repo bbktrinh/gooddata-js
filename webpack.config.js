@@ -27,7 +27,11 @@ module.exports = {
         ]
     },
     plugins: [
-        new webpack.BannerPlugin('<%= license %>', {raw: true})
+        new webpack.BannerPlugin('<%= license %>', {raw: true}),
+        new webpack.ProvidePlugin({
+            'Promise': 'imports?this=>global!exports?global.Promise!es6-promise',
+            'fetch': 'imports?this=>global!exports?global.fetch!isomorphic-fetch'
+        })
     ],
     externals: {
         // require('jquery') is external and available

@@ -2,7 +2,6 @@
 /*eslint no-use-before-define: [2, "nofunc"]*/
 import $ from 'jquery';
 import * as config from './config';
-import 'isomorphic-fetch'; // do not import fetch from 'isomorphic-fetch'!!
 import {
     isPlainObject,
     isFunction,
@@ -10,6 +9,7 @@ import {
     merge,
     result
 } from 'lodash';
+import fetch from 'isomorphic-fetch';
 
 /**
  * Ajax wrapper around GDC authentication mechanisms, SST and TT token handling and polling.
@@ -38,19 +38,18 @@ function enrichSettingWithCustomDomain(settings, domain) {
     return settings;
 }
 
-function continueAfterTokenRequest(req) {
+function continueAfterTokenRequest(url, settings) {
     tokenRequest.then(response => {
         if (!response.ok) {
             throw new Error('Unauthorized');
         }
+        tokenRequest = null;
 
-        /* eslint-disable block-scoped-var */ // TODO solve
-        retryAjaxRequest(req);
-        /* eslint-enable block-scoped-var */
+        return ajax(url, settings);
     });
 }
 
-function handleUnauthorized(req) {
+function handleUnauthorized(url, settings) {
     if (!tokenRequest) {
         // Create only single token request for any number of waiting request.
         // If token request exist, just listen for it's end.
@@ -60,7 +59,7 @@ function handleUnauthorized(req) {
         //  )
 
         tokenRequest = fetch('/gdc/account/token', { credentials: 'include' }).then(response => {
-            tokenRequest = null;
+            // tokenRequest = null;
             // TODO jquery compat - allow to attach unauthorized callback and call it if attached
             // if ((xhrObj.status === 401) && (isFunction(req.unauthorized))) {
             //     req.unauthorized(xhrObj, textStatus, err, deferred);
@@ -68,15 +67,34 @@ function handleUnauthorized(req) {
             // }
             // unauthorized handler is not defined or not http 401
             // unauthorized when retrieving token -> not logged
-            if (!response.ok) {
+            if (response.status === 401) {
                 throw new Error('Unauthorized');
             }
+
+            return response;
         });
     }
-    continueAfterTokenRequest(req);
+    continueAfterTokenRequest(url, settings);
 }
 
 export function ajax(url, settings = {}) {
+    let originalRequest = createRequest(url, settings)
+    if (tokenRequest) {
+        return continueAfterTokenRequest(originalRequest);
+    }
+
+    const promise = fetch(originalRequest).then(response => {
+        if (response.status === 401) {
+            handleUnauthorized(url, settings);
+        }
+
+        return response;
+    }); // TODO handle polling
+
+    return promise;
+}
+
+function createRequest(url, settings) {
     let finalUrl;
     let finalSettings;
     const headers = new Headers({
@@ -93,39 +111,18 @@ export function ajax(url, settings = {}) {
         finalSettings = settings;
     }
 
-    // TODO merge with headers from settings
+    // TODO merge with headers from config
     finalSettings.headers = headers;
 
     // TODO move to jquery compat layer
     finalSettings.body = (finalSettings.data) ? finalSettings.data : finalSettings.body;
+    finalSettings.credentials = 'include';
 
     if (isPlainObject(finalSettings.body)) {
         settings.body = JSON.stringify(finalSettings.body);
     }
 
-    if (tokenRequest) {
-        continueAfterTokenRequest(finalSettings, promise);
-        return promise;
-    }
-
-    // TODO move to settings object creation
-    finalSettings.credetials = 'include';
-
-    const promise = fetch(finalUrl, finalSettings).then(response => {
-        if (response.status === 401) {
-            handleUnauthorized(finalSettings);
-        }
-
-        return response;
-    }); // TODO handle polling
-
-    return promise;
-}
-
-function retryAjaxRequest(req) {
-    // still use our extended ajax, because is still possible to fail recoverably in again
-    // e.g. request -> 401 -> token renewal -> retry request -> 202 (polling) -> retry again after delay
-    return ajax(req);
+    return new Request(finalUrl, finalSettings);
 }
 
 function handlePolling(req, deferred) {

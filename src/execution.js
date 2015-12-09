@@ -89,29 +89,24 @@ export function getData(projectId, columns, executionConfiguration = {}, setting
         }
     });
 
-    /*eslint-disable new-cap*/
-    const d = $.Deferred();
-    /*eslint-enable new-cap*/
-
     // Execute request
-    post(`/gdc/internal/projects/${projectId}/experimental/executions`, {
-        ...settings,
-        data: JSON.stringify(request)
-    }, d.reject).then((result) => {
+    return post('/gdc/internal/projects/' + projectId + '/experimental/executions', {
+        body: JSON.stringify(request)
+    })
+    .then(r => r.json())
+    .then(function resolveSimpleExecution(result) {
         executedReport.headers = wrapMeasureIndexesFromMappings(
             get(executionConfiguration, 'metricMappings'), result.executionResult.headers);
 
         // Start polling on url returned in the executionResult for tabularData
         return ajax(result.executionResult.tabularDataResult, settings);
-    }, d.reject).then((result, message, response) => {
+    }).then(function resolveDataResultPolling(result) {
         // After the retrieving computed tabularData, resolve the promise
         executedReport.rawData = (result && result.tabularDataResult) ? result.tabularDataResult.values : [];
         executedReport.isLoaded = true;
         executedReport.isEmpty = (response.status === 204);
-        d.resolve(executedReport);
-    }, d.reject);
-
-    return d.promise();
+        return executedReport;
+    });
 }
 
 const MAX_TITLE_LENGTH = 255;
