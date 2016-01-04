@@ -23,20 +23,22 @@ import 'isomorphic-fetch'
  * @class xhr
  */
 
+const DEFAULT_POLL_DELAY = 1000;
+
 let tokenRequest;
 let xhrSettings; // TODO rename xhrSettings - "defaultXhrSettings?"
 
-function enrichSettingWithCustomDomain(settings, domain) {
+function enrichSettingWithCustomDomain(url, settings, domain) {
     if (domain) {
         // protect url to be prepended with domain on retry
-        if (settings.url.indexOf(domain) === -1) {
-            settings.url = domain + settings.url;
+        if (url.indexOf(domain) === -1) {
+            url = domain + url;
         }
-        settings.xhrFields = settings.xhrFields || {};
-        settings.xhrFields.withCredentials = true;
+        settings.mode = 'cors';
+        settings.credentials = 'include';
     }
 
-    return settings;
+    return { url, settings };
 }
 
 function continueAfterTokenRequest(url, settings) {
@@ -54,16 +56,13 @@ function continueAfterTokenRequest(url, settings) {
     });
 }
 
-function handleUnauthorized(url, settings) {
+function handleUnauthorized(originalUrl, originalSettings) {
     if (!tokenRequest) {
         // Create only single token request for any number of waiting request.
         // If token request exist, just listen for it's end.
-        // TODO add:
-        //  enrichSettingWithCustomDomain(
-        //    { url: '/gdc/account/token/' }, config.domain
-        //  )
+        const { url, settings } = enrichSettingWithCustomDomain('/gdc/account/token', createSettings({}), config.domain);
 
-        tokenRequest = fetch('/gdc/account/token', { credentials: 'include' }).then(response => {
+        tokenRequest = fetch(url, settings).then(response => {
             // tokenRequest = null;
             // TODO jquery compat - allow to attach unauthorized callback and call it if attached
             // if ((xhrObj.status === 401) && (isFunction(req.unauthorized))) {
@@ -76,19 +75,19 @@ function handleUnauthorized(url, settings) {
                 throw new Error('Unauthorized');
             }
 
-            // throw Error('quux2')
             return response;
         });
     }
-    return continueAfterTokenRequest(url, settings);
+    return continueAfterTokenRequest(originalUrl, originalSettings);
 }
 
 function isLoginRequest(url) {
     return url.indexOf('/gdc/account/login') !== -1;
 }
 
-export function ajax(url, tempSettings = {}) {
-    let settings = createSettings(tempSettings)
+export function ajax(originalUrl, tempSettings = {}) {
+    let firstSettings = createSettings(tempSettings);
+    const { url, settings } = enrichSettingWithCustomDomain(originalUrl, firstSettings, config.domain);
     if (tokenRequest) {
         return continueAfterTokenRequest(url, settings);
     }
@@ -105,12 +104,12 @@ export function ajax(url, tempSettings = {}) {
             return handleUnauthorized(url, settings);
         }
 
-        if (response.status === 202) {// TODO add settings.dontPollOnResult
+        if (response.status === 202 && !settings.dontPollOnResult) {
             // if the response is 202 and Location header is not empty, let's poll on the new Location
             let finalUrl = url;
             let finalSettings = settings;
-            if (response.has('Location')) {
-                finalUrl = response.get('Location');
+            if (response.headers.has('Location')) {
+                finalUrl = response.headers.get('Location');
             }
             finalSettings.method = 'GET';
             delete finalSettings.data;
@@ -127,12 +126,15 @@ function createSettings(settings) {
         'Content-Type': 'application/json'
     });
 
+    settings.pollDelay = (settings.pollDelay !== undefined) ? settings.pollDelay : DEFAULT_POLL_DELAY;
+
     // TODO merge with headers from config
     settings.headers = headers;
 
     // TODO move to jquery compat layer
     settings.body = (settings.data) ? settings.data : settings.body;
-    settings.credentials = 'include';
+    settings.mode = 'same-origin';
+    settings.credentials = 'same-origin';
 
     if (isPlainObject(settings.body)) {
         settings.body = JSON.stringify(settings.body);
@@ -145,24 +147,8 @@ function handlePolling(url, settings) {
     return new Promise((resolve, reject) => {
         setTimeout(function poller() {
             ajax(url, settings).then(resolve, reject);
-        }, 2000); // TODO add settings.pollDelay
+        }, settings.pollDelay); // TODO add settings.pollDelay
     })
-}
-
-// helper to coverts traditional ajax callbacks to deferred
-function reattachCallbackOnDeferred(settings, property, defferAttach) {
-    const callback = settings[property];
-    delete settings[property];
-    if (isFunction(callback)) {
-        defferAttach(callback);
-    }
-    if (isArray(callback)) {
-        callback.forEach(function loopCallbacks(fn) {
-            if (isFunction(callback)) {
-                defferAttach(fn);
-            }
-        });
-    }
 }
 
 /**
@@ -185,73 +171,6 @@ export function ajaxSetup(settings) {
             'Accept': 'application/json; charset=utf-8'
         }
     }, settings);
-}
-
-
-/**
- * Same api as jQuery.ajax - arguments (url, settings) or (settings) with url inside
- * Additionally content type is automatically json, and object in settings.data is converted to string
- * to be consumed by GDC backend.
-
- * settings additionally accepts keys: unauthorized, pollDelay (see xhrSetup for more details)
- * @method ajax
- * @param url request url
- * @param settings settings object
- */
-export function ajax_(url, settings) {
-    let finalSettings;
-    let finalUrl;
-    if (isPlainObject(url)) {
-        finalSettings = url;
-        finalUrl = undefined;
-    } else {
-        finalUrl = url;
-        finalSettings = settings;
-    }
-    // copy settings to not modify passed object
-    // settings can be undefined, doesn't matter, $.extend handle it
-    finalSettings = merge({}, xhrSettings, finalSettings);
-    if (finalUrl) {
-        finalSettings.url = finalUrl;
-    }
-
-    if (isPlainObject(finalSettings.data)) {
-        finalSettings.data = JSON.stringify(finalSettings.data);
-    }
-
-    /*eslint-disable new-cap*/
-    const d = $.Deferred();
-    /*eslint-enable new-cap*/
-    reattachCallbackOnDeferred(finalSettings, 'success', d.done);
-    reattachCallbackOnDeferred(finalSettings, 'error', d.fail);
-    reattachCallbackOnDeferred(finalSettings, 'complete', d.always);
-
-    if (tokenRequest) {
-        continueAfterTokenRequest(finalSettings, d);
-        return d;
-    }
-
-    $.ajax(enrichSettingWithCustomDomain(finalSettings, config.domain)).fail(function jqAjaxFail(xhrObj, textStatus, err) {
-        if (xhrObj.status === 401) {
-            handleUnauthorized(finalSettings, d);
-        } else {
-            d.reject(xhrObj, textStatus, err);
-        }
-    }).done(function jqAjaxDone(data, textStatus, xhrObj) {
-        if (xhrObj.status === 202 && !finalSettings.dontPollOnResult) {
-            // if the response is 202 and Location header is not empty, let's poll on the new Location
-            const location = xhrObj.getResponseHeader('Location');
-            if (location) {
-                finalSettings.url = location;
-            }
-            finalSettings.method = 'GET';
-            delete finalSettings.data;
-            handlePolling(finalSettings, d);
-        } else {
-            d.resolve(data, textStatus, xhrObj);
-        }
-    });
-    return d;
 }
 
 function xhrMethod(method) {
