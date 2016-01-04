@@ -1,6 +1,6 @@
 // Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
 /*eslint no-use-before-define: [2, "nofunc"]*/
-import $ from 'jquery';
+// import $ from 'jquery';
 import * as config from './config';
 import {
     isPlainObject,
@@ -9,7 +9,7 @@ import {
     merge,
     result
 } from 'lodash';
-import fetch from 'isomorphic-fetch';
+import 'isomorphic-fetch'
 
 /**
  * Ajax wrapper around GDC authentication mechanisms, SST and TT token handling and polling.
@@ -47,6 +47,10 @@ function continueAfterTokenRequest(url, settings) {
         tokenRequest = null;
 
         return ajax(url, settings);
+    }, reason => {
+
+        tokenRequest = null;
+        return reason;
     });
 }
 
@@ -72,79 +76,77 @@ function handleUnauthorized(url, settings) {
                 throw new Error('Unauthorized');
             }
 
+            // throw Error('quux2')
             return response;
         });
     }
     return continueAfterTokenRequest(url, settings);
 }
 
-function isLoginRequest(request) {
-    return request.url.indexOf('/gdc/account/login') !== -1;
+function isLoginRequest(url) {
+    return url.indexOf('/gdc/account/login') !== -1;
 }
 
-export function ajax(url, settings = {}) {
-    let originalRequest = createRequest(url, settings)
+export function ajax(url, tempSettings = {}) {
+    let settings = createSettings(tempSettings)
     if (tokenRequest) {
-        return continueAfterTokenRequest(originalRequest);
+        return continueAfterTokenRequest(url, settings);
     }
 
-    return fetch(originalRequest).then(response => {
+    return fetch(url, settings).then(response => {
         // If response.status id 401 and it was a login request there is no need
         // to cycle back for token - login does not need token and this meand you
         // are not authorized
         if (response.status === 401) {
-            if (isLoginRequest(originalRequest)) {
+            if (isLoginRequest(url)) {
                 throw new Error('Unauthorized');
             }
 
             return handleUnauthorized(url, settings);
         }
 
-        if (response.status === 202) { // TODO add settings.dontPollOnResult
-            debugger;
+        if (response.status === 202) {// TODO add settings.dontPollOnResult
+            // if the response is 202 and Location header is not empty, let's poll on the new Location
+            let finalUrl = url;
+            let finalSettings = settings;
+            if (response.has('Location')) {
+                finalUrl = response.get('Location');
+            }
+            finalSettings.method = 'GET';
+            delete finalSettings.data;
+            delete finalSettings.body;
+            return handlePolling(finalUrl, finalSettings);
         }
-
         return response;
     }); // TODO handle polling
 }
 
-function createRequest(url, settings) {
-    let finalUrl;
-    let finalSettings;
+function createSettings(settings) {
     const headers = new Headers({
         'Accept': 'application/json; charset=utf-8',
         'Content-Type': 'application/json'
     });
 
-    if (isPlainObject(url)) { // TODO jquery compat
-        finalUrl = url.url;
-        delete url.url;
-        finalSettings = url;
-    } else {
-        finalUrl = url;
-        finalSettings = settings;
-    }
-
     // TODO merge with headers from config
-    finalSettings.headers = headers;
+    settings.headers = headers;
 
     // TODO move to jquery compat layer
-    finalSettings.body = (finalSettings.data) ? finalSettings.data : finalSettings.body;
-    finalSettings.credentials = 'include';
+    settings.body = (settings.data) ? settings.data : settings.body;
+    settings.credentials = 'include';
 
-    if (isPlainObject(finalSettings.body)) {
-        settings.body = JSON.stringify(finalSettings.body);
+    if (isPlainObject(settings.body)) {
+        settings.body = JSON.stringify(settings.body);
     }
 
-    return new Request(finalUrl, finalSettings);
+    return settings;
 }
 
-function handlePolling(req, deferred) {
-    const pollingDelay = result(req, 'pollDelay');
-
-    setTimeout(function poller() {
-        retryAjaxRequest(req, deferred);
-    }, pollingDelay);
+function handlePolling(url, settings) {
+    return new Promise((resolve, reject) => {
+        setTimeout(function poller() {
+            ajax(url, settings).then(resolve, reject);
+        }, 2000); // TODO add settings.pollDelay
+    })
 }
 
 // helper to coverts traditional ajax callbacks to deferred
