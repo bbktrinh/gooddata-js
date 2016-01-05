@@ -13,9 +13,6 @@ module.exports = {
 
         modulesDirectories: ['src', 'node_modules']
     },
-    plugins: [
-        new webpack.NormalModuleReplacementPlugin(/^fetch-mock$/, path.resolve( __dirname, 'node_modules' , 'fetch-mock/client.js'))
-    ],
 
     module: {
         loaders: [
