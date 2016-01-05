@@ -1,6 +1,5 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
-import $ from 'jquery';
-import { ajax, get, post, put } from './xhr';
+import { ajax, get, post } from './xhr';
 
 /**
  * @module user
@@ -16,7 +15,13 @@ import { ajax, get, post, put } from './xhr';
  * @method isLoggedIn
  */
 export function isLoggedIn() {
-    return $.getJSON('/gdc/account/token');
+    return get('/gdc/account/token').then(r => {
+        if (r.ok) {
+            return true;
+        }
+
+        return false;
+    });
 }
 
 
@@ -31,7 +36,7 @@ export function isLoggedIn() {
  */
 export function login(username, password) {
     return post('/gdc/account/login', {
-        data: JSON.stringify({
+        body: JSON.stringify({
             postUserLogin: {
                 login: username,
                 password: password,
@@ -40,7 +45,7 @@ export function login(username, password) {
                 verifyCaptcha: ''
             }
         })
-    });
+    }).then(r => r.ok ? r.json() : r);
 }
 
 /**
@@ -48,23 +53,20 @@ export function login(username, password) {
  * @method logout
  */
 export function logout() {
-    /* eslint new-cap: 0 */
-    const d = $.Deferred();
+    return isLoggedIn().then((loggedIn) => {
+        if (loggedIn) {
+            return get('/gdc/app/account/bootstrap').then(r => r.ok ? r.json() : r).then((result) => {
+                const userUri = result.bootstrapResource.accountSetting.links.self;
+                const userId = userUri.match(/([^\/]+)\/?$/)[1];
 
-    isLoggedIn().then(function resolve() {
-        return get('/gdc/app/account/bootstrap').then(function resolveGet(result) {
-            const userUri = result.bootstrapResource.accountSetting.links.self;
-            const userId = userUri.match(/([^\/]+)\/?$/)[1];
+                return ajax('/gdc/account/login/' + userId, {
+                    method: 'delete'
+                });
+            });
+        }
 
-            return userId;
-        }, d.reject);
-    }, d.resolve).then(function resolveAll(userId) {
-        return ajax('/gdc/account/login/' + userId, {
-            method: 'delete'
-        });
-    }).then(d.resolve, d.reject);
-
-    return d.promise();
+        return Promise.resolve();
+    });
 }
 
 /**
@@ -90,22 +92,19 @@ export function updateProfileSettings(profileId, profileSetting) {
  * @method getAccountInfo
  */
 export function getAccountInfo() {
-    /* eslint new-cap: 0 */
-    const d = $.Deferred();
+    return get('/gdc/app/account/bootstrap')
+        .then(r => r.json())
+        .then(function resolveBootstrap(result) {
+            const br = result.bootstrapResource;
+            const accountInfo = {
+                login: br.accountSetting.login,
+                loginMD5: br.current.loginMD5,
+                firstName: br.accountSetting.firstName,
+                lastName: br.accountSetting.lastName,
+                organizationName: br.settings.organizationName,
+                profileUri: br.accountSetting.links.self
+            };
 
-    get('/gdc/app/account/bootstrap').then(function resolveBootstrap(result) {
-        const br = result.bootstrapResource;
-        const accountInfo = {
-            login: br.accountSetting.login,
-            loginMD5: br.current.loginMD5,
-            firstName: br.accountSetting.firstName,
-            lastName: br.accountSetting.lastName,
-            organizationName: br.settings.organizationName,
-            profileUri: br.accountSetting.links.self
-        };
-
-        d.resolve(accountInfo);
-    }, d.reject);
-
-    return d.promise();
+            return accountInfo;
+        });
 }
