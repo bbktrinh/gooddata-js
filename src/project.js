@@ -1,5 +1,4 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
-import $ from 'jquery';
 import { ajax, get, put } from './xhr';
 import { getIn } from './util';
 
@@ -18,7 +17,7 @@ import { getIn } from './util';
  * @return {String} current project identifier
  */
 export function getCurrentProjectId() {
-    return get('/gdc/app/account/bootstrap').then(function resolveBootstrap(result) {
+    return get('/gdc/app/account/bootstrap').then(r => r.ok ? r.json() : r).then(result => {
         const currentProject = result.bootstrapResource.current.project;
         // handle situation in which current project is missing (e.g. new user)
         if (!currentProject) {
@@ -37,8 +36,14 @@ export function getCurrentProjectId() {
  * @return {Array} An Array of projects
  */
 export function getProjects(profileId) {
-    return get('/gdc/account/profile/' + profileId + '/projects').then(function resolveProjects(result) {
-        return result.projects.map(function getProject(p) { return p.project; });
+    return get('/gdc/account/profile/' + profileId + '/projects').then(r => {
+        if (!r.ok) {
+            throw new Error(r.statusText);
+        }
+
+        return r.json();
+    }).then((r) => {
+        return r.projects.map(p => p.project);
     });
 }
 
@@ -50,7 +55,7 @@ export function getProjects(profileId) {
  * @return {Array} An array of objects containing datasets metadata
  */
 export function getDatasets(projectId) {
-    return get('/gdc/md/' + projectId + '/query/datasets').then(getIn('query.entries'));
+    return get('/gdc/md/' + projectId + '/query/datasets').then(r => r.ok ? r.json() : r).then(getIn('query.entries'));
 }
 
 const DEFAULT_PALETTE = [
@@ -84,26 +89,20 @@ const DEFAULT_PALETTE = [
  * color palette
  */
 export function getColorPalette(projectId) {
-    /*eslint-disable new-cap*/
-    const d = $.Deferred();
-    /*eslint-enable new-cap*/
-
-    get('/gdc/projects/' + projectId + '/styleSettings').then(function resolveStyleSetting(result) {
-        d.resolve(result.styleSettings.chartPalette.map(function mapColorToObject(c) {
-            return {
+    return get('/gdc/projects/' + projectId + '/styleSettings').then(r => r.ok ? r.json() : r).then((result) => {
+        return result.styleSettings.chartPalette.map(c => { return {
                 r: c.fill.r,
                 g: c.fill.g,
                 b: c.fill.b
             };
-        }));
-    }, function rejectStyleSetting(err) {
+        });
+    }, (err) => {
         if (err.status === 200) {
-            d.resolve(DEFAULT_PALETTE);
+            return DEFAULT_PALETTE;
         }
-        d.reject(err);
-    });
 
-    return d.promise();
+        throw new Error(err.statusText)
+    });
 }
 
 /**
@@ -115,11 +114,7 @@ export function getColorPalette(projectId) {
  * Each color should be an object with r, g, b fields.
  */
 export function setColorPalette(projectId, colors) {
-    /*eslint-disable new-cap*/
-    const d = $.Deferred();
-    /*eslint-enable new-cap*/
-
-    put('/gdc/projects/' + projectId + '/styleSettings', {
+    return put('/gdc/projects/' + projectId + '/styleSettings', {
         data: {
             styleSettings: {
                 chartPalette: colors.map(function mapColorToObject(c, idx) {
@@ -130,9 +125,7 @@ export function setColorPalette(projectId, colors) {
                 })
             }
         }
-    }).then(d.resolve, d.reject);
-
-    return d.promise();
+    });
 }
 
 /**
@@ -148,34 +141,22 @@ export function setColorPalette(projectId, colors) {
  * @param {String} projectId - GD project identifier
  */
 export function getTimezone(projectId) {
-    /*eslint-disable new-cap*/
-    const d = $.Deferred();
-    /*eslint-enable new-cap*/
     const bootstrapUrl = '/gdc/app/account/bootstrap?projectId=' + projectId;
 
-    get(bootstrapUrl).then(function resolveGetTimezone(result) {
-        const timezone = result.bootstrapResource.current.timezone;
-        d.resolve(timezone);
-    }, d.reject);
-
-    return d.promise();
+    return get(bootstrapUrl).then(r => r.ok ? r.json() : r).then(result => {
+        return result.bootstrapResource.current.timezone;
+    });
 }
 
 export function setTimezone(projectId, timezone) {
-    /*eslint-disable new-cap*/
-    const d = $.Deferred();
-    /*eslint-enable new-cap*/
     const timezoneServiceUrl = '/gdc/md/' + projectId + '/service/timezone';
     const data = {
         service: { timezone: timezone }
     };
 
-    ajax(timezoneServiceUrl, {
-        type: 'POST',
-        headers: { Accept: 'application/json' },
-        data: data
-    }).then(d.resolve, d.reject);
-
-    return d.promise();
+    return ajax(timezoneServiceUrl, {
+        method: 'POST',
+        body: data
+    }).then(r => r.ok ? r.json() : r);
 }
 
