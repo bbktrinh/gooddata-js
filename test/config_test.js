@@ -29,6 +29,21 @@ describe('config', () => {
                 config.setCustomDomain('$');
             }).to.throwError();
         });
+        it('should unset domain with null argument', () => {
+            config.setCustomDomain(null);
+            expect(config.domain).to.be(undefined);
+        });
+        it('should unset domain only with null argument', () => {
+            expect(() => {
+                config.setCustomDomain(undefined);
+            }).to.throwError();
+            expect(() => {
+                config.setCustomDomain(0);
+            }).to.throwError();
+            expect(() => {
+                config.setCustomDomain(NaN);
+            }).to.throwError();
+        });
     });
 });
 

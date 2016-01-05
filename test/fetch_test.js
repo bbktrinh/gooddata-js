@@ -44,7 +44,6 @@ describe('fetch', () => {
 
     describe('xhr.ajax unauthorized handling', () => {
         it('should renew token when TT expires', () => {
-            expect(true).to.be.ok();
             fetchMock.mock('/some/url', (url) => {
                 // for the first time return 401 - simulate no token
                 if (fetchMock.calls(url).length === 1) {
@@ -227,6 +226,9 @@ describe('fetch', () => {
     });
 
     describe('enrichSettingWithCustomDomain', () => {
+        after(() => {
+            setCustomDomain(null);
+        });
         it('should not touch settings if no domain set', () => {
             fetchMock.mock('/test1', 200);
             expect(setCustomDomain).withArgs(undefined).to.throwError();
