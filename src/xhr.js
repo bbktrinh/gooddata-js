@@ -1,12 +1,9 @@
 // Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
-/*eslint no-use-before-define: [2, "nofunc"]*/
+/*eslint block-scoped-var:0 no-use-before-define: [2, "nofunc"]*/ // TODO enable block-scoped-vars
 import * as config from './config';
 import {
     isPlainObject,
-    isFunction,
-    isArray,
-    merge,
-    result
+    merge
 } from 'lodash';
 import 'isomorphic-fetch'
 
@@ -26,11 +23,12 @@ const DEFAULT_POLL_DELAY = 1000;
 
 let tokenRequest;
 
-function enrichSettingWithCustomDomain(url, settings, domain) {
+function enrichSettingWithCustomDomain(originalUrl, settings, domain) {
+    let url = originalUrl;
     if (domain) {
         // protect url to be prepended with domain on retry
-        if (url.indexOf(domain) === -1) {
-            url = domain + url;
+        if (originalUrl.indexOf(domain) === -1) {
+            url = domain + originalUrl;
         }
         settings.mode = 'cors';
         settings.credentials = 'include';
@@ -48,7 +46,6 @@ function continueAfterTokenRequest(url, settings) {
 
         return ajax(url, settings);
     }, reason => {
-
         tokenRequest = null;
         return reason;
     });
@@ -84,7 +81,7 @@ function isLoginRequest(url) {
 }
 
 export function ajax(originalUrl, tempSettings = {}) {
-    let firstSettings = createSettings(tempSettings);
+    const firstSettings = createSettings(tempSettings);
     const { url, settings } = enrichSettingWithCustomDomain(originalUrl, firstSettings, config.domain);
     if (tokenRequest) {
         return continueAfterTokenRequest(url, settings);
@@ -105,7 +102,7 @@ export function ajax(originalUrl, tempSettings = {}) {
         if (response.status === 202 && !settings.dontPollOnResult) {
             // if the response is 202 and Location header is not empty, let's poll on the new Location
             let finalUrl = url;
-            let finalSettings = settings;
+            const finalSettings = settings;
             if (response.headers.has('Location')) {
                 finalUrl = response.headers.get('Location');
             }
@@ -146,7 +143,7 @@ function handlePolling(url, settings) {
         setTimeout(function poller() {
             ajax(url, settings).then(resolve, reject);
         }, settings.pollDelay); // TODO add settings.pollDelay
-    })
+    });
 }
 function xhrMethod(method) {
     return function methodFn(url, settings) {

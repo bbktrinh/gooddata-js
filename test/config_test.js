@@ -1,10 +1,9 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
-/* eslint func-names: 0 */
 import * as config from '../src/config';
 
 describe('config', () => {
     describe('setCustomDomain', () => {
-        afterEach(function() {
+        afterEach(() => {
             config.domain = undefined;
         });
         it('should set url if valid', () => {
@@ -26,7 +25,7 @@ describe('config', () => {
             expect(config.domain).to.be('https://custom.domain.tld');
         });
         it('should throw with invalid url', () => {
-            expect(function() {
+            expect(() => {
                 config.setCustomDomain('$');
             }).to.throwError();
         });

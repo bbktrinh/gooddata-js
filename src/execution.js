@@ -95,9 +95,9 @@ export function getData(projectId, columns, executionConfiguration = {}, setting
     })
     .then(r => {
         if (!r.ok) {
-            throw new Error(`Request to ${r.url} failed, status: ${r.status}`)
+            throw new Error(`Request to ${r.url} failed, status: ${r.status}`);
         }
-        return r.json()
+        return r.json();
     })
     .then(function resolveSimpleExecution(result) {
         executedReport.headers = wrapMeasureIndexesFromMappings(
@@ -107,9 +107,9 @@ export function getData(projectId, columns, executionConfiguration = {}, setting
         return ajax(result.executionResult.tabularDataResult);
     }).then(r => {
         if (!r.ok) {
-            throw new Error(`Request to ${r.url} failed, status: ${r.status}`)
+            throw new Error(`Request to ${r.url} failed, status: ${r.status}`);
         }
-        return r.json()
+        return r.json();
     }).then(function resolveDataResultPolling(result) {
         // After the retrieving computed tabularData, resolve the promise
         executedReport.rawData = (result && result.tabularDataResult) ? result.tabularDataResult.values : [];

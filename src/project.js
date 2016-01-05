@@ -90,7 +90,8 @@ const DEFAULT_PALETTE = [
  */
 export function getColorPalette(projectId) {
     return get('/gdc/projects/' + projectId + '/styleSettings').then(r => r.ok ? r.json() : r).then((result) => {
-        return result.styleSettings.chartPalette.map(c => { return {
+        return result.styleSettings.chartPalette.map(c => {
+            return {
                 r: c.fill.r,
                 g: c.fill.g,
                 b: c.fill.b
@@ -101,7 +102,7 @@ export function getColorPalette(projectId) {
             return DEFAULT_PALETTE;
         }
 
-        throw new Error(err.statusText)
+        throw new Error(err.statusText);
     });
 }
 

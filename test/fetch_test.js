@@ -45,9 +45,9 @@ describe('fetch', () => {
     describe('xhr.ajax unauthorized handling', () => {
         it('should renew token when TT expires', () => {
             expect(true).to.be.ok();
-            fetchMock.mock('/some/url', (url, opts) => {
+            fetchMock.mock('/some/url', (url) => {
                 // for the first time return 401 - simulate no token
-                if (fetchMock.calls('/some/url').length === 1) {
+                if (fetchMock.calls(url).length === 1) {
                     return 401;
                 }
 
@@ -68,7 +68,7 @@ describe('fetch', () => {
         });
 
         it('should correctly handle multiple requests with token request in progress', () => {
-            const firstFailedMatcher = (url, opts) => {
+            const firstFailedMatcher = () => {
                 if (fetchMock.calls('/some/url/1').length === 1) {
                     return 401;
                 }
@@ -89,12 +89,12 @@ describe('fetch', () => {
 
     describe('xhr.ajax polling', () => {
         it('should retry request after delay', () => {
-            fetchMock.mock('/some/url', (url, opts) => {
+            fetchMock.mock('/some/url', (url) => {
                 if (fetchMock.calls(url).length <= 2) {
                     return 202;
                 }
 
-                return { status: 200, body: "Poll result" };
+                return { status: 200, body: 'Poll result' };
             });
 
             return xhr.ajax('/some/url', { pollDelay: 0 }).then(r => {
@@ -108,12 +108,12 @@ describe('fetch', () => {
         });
 
         it('should not poll if client forbids it', () => {
-            fetchMock.mock('/some/url', (url, opts) => {
+            fetchMock.mock('/some/url', (url) => {
                 if (fetchMock.calls(url).length <= 2) {
                     return 202;
                 }
 
-                return { status: 200, body: "poll result" };
+                return { status: 200, body: 'poll result' };
             });
 
             return xhr.ajax('/some/url', { pollDelay: 0, dontPollOnResult: true }).then(r => {
@@ -123,7 +123,7 @@ describe('fetch', () => {
         });
 
         it('should correctly reject after retry is 404', () => {
-            fetchMock.mock('/some/url', (url, opts) => {
+            fetchMock.mock('/some/url', (url) => {
                 if (fetchMock.calls(url).length <= 2) {
                     return 202;
                 }
@@ -140,12 +140,12 @@ describe('fetch', () => {
     describe('xhr.ajax polling with different location', () => {
         it('should retry request after delay', () => {
             fetchMock.mock('/some/url', { status: 202, headers: { 'Location': '/other/url' } });
-            fetchMock.mock('/other/url', (url, opts) => {
+            fetchMock.mock('/other/url', (url) => {
                 if (fetchMock.calls(url).length <= 2) {
                     return 202;
                 }
 
-                return { status: 200, body: "Poll result from other url" };
+                return { status: 200, body: 'Poll result from other url' };
             });
 
             return xhr.ajax('/some/url', { pollDelay: 0 }).then(r => {
@@ -178,7 +178,7 @@ describe('fetch', () => {
 
         it('should correctly reject after retry 404', () => {
             fetchMock.mock('/some/url', { status: 202, headers: { 'Location': '/other/url' } });
-            fetchMock.mock('/other/url', (url, opts) => {
+            fetchMock.mock('/other/url', (url) => {
                 if (fetchMock.calls(url).length <= 2) {
                     return 202;
                 }
@@ -195,16 +195,7 @@ describe('fetch', () => {
     });
 
     describe('shortcut methods', () => {
-        before(function() {
-            sinon.stub(xhr, 'ajax');
-        });
-
-        after(function() {
-            xhr.ajax.restore();
-        });
-
-        beforeEach(function() {
-            xhr.ajax.reset();
+        beforeEach(() => {
             fetchMock.mock('url', 200);
         });
 

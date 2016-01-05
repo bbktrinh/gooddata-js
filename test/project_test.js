@@ -4,7 +4,7 @@ import fetchMock from 'fetch-mock';
 
 describe('project', () => {
     describe('with fake server', () => {
-        afterEach(function() {
+        afterEach(() => {
             fetchMock.restore();
         });
 

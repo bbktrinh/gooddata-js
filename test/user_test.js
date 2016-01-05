@@ -1,11 +1,10 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
-/* eslint func-names: 0 */
 import * as user from '../src/user';
 import fetchMock from 'fetch-mock';
 
 describe('user', () => {
     describe('with fake server', () => {
-        afterEach(function() {
+        afterEach(() => {
             fetchMock.restore();
         });
 
@@ -22,7 +21,7 @@ describe('user', () => {
                     }
                 );
 
-                return user.login('login', 'pass').then(function(result) {
+                return user.login('login', 'pass').then((result) => {
                     expect(result).to.eql(
                         {'userLogin': {'profile': '/gdc/account/profile/abcd', 'state': '/gdc/account/login/abcd'}}
                     );
@@ -68,7 +67,7 @@ describe('user', () => {
                     401
                 );
 
-                return user.logout().then(null, err => expect().fail('Should resolve'));
+                return user.logout().then(null, err => expect(err).fail('Should resolve'));
             });
 
             it('should log out user', () => {
@@ -138,7 +137,7 @@ describe('user', () => {
                     '/gdc/app/account/bootstrap',
                     'GET',
                     {
-                        status :200,
+                        status: 200,
                         body: JSON.stringify({
                             bootstrapResource: {
                                 accountSetting: {
@@ -160,7 +159,7 @@ describe('user', () => {
                     }
                 );
 
-                return user.getAccountInfo().then(function(accountInfo) {
+                return user.getAccountInfo().then((accountInfo) => {
                     expect(accountInfo.login).to.eql(login);
                     expect(accountInfo.loginMD5).to.eql(loginMD5);
                     expect(accountInfo.firstName).to.eql(firstName);
