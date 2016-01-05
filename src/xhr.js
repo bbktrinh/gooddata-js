@@ -1,6 +1,5 @@
 // Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
 /*eslint no-use-before-define: [2, "nofunc"]*/
-// import $ from 'jquery';
 import * as config from './config';
 import {
     isPlainObject,
@@ -130,7 +129,7 @@ function createSettings(settings) {
     // TODO merge with headers from config
     settings.headers = headers;
 
-    // TODO move to jquery compat layer
+    // TODO jquery compat - add to warnings
     settings.body = (settings.data) ? settings.data : settings.body;
     settings.mode = 'same-origin';
     settings.credentials = 'same-origin';
