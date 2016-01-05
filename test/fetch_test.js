@@ -3,7 +3,7 @@ import * as xhr from '../src/xhr';
 import fetchMock from 'fetch-mock';
 import { setCustomDomain } from '../src/config';
 
-describe.only('fetch', () => {
+describe('fetch', () => {
     afterEach(() => {
         fetchMock.restore();
     });
