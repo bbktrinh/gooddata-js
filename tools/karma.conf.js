@@ -25,7 +25,6 @@ module.exports = function(config) {
         require('karma-mocha-reporter'),
         require('karma-junit-reporter'),
         require('karma-coverage'),
-        require('karma-phantomjs-launcher'),
         require('karma-chrome-launcher'),
         require('karma-expect'),
         require('karma-sinon'),
