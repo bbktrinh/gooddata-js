@@ -4,19 +4,14 @@ import { cloneDeep, range } from 'lodash';
 
 import * as ex from '../src/execution';
 import { expectColumns, expectMetricDefinition, expectOrderBy, expectWhereCondition } from './helpers/execution';
+import fetchMock from 'fetch-mock';
 
 describe('execution', () => {
     describe('with fake server', () => {
-        let server;
         let serverResponseMock;
 
-        beforeEach(function() {
-            server = sinon.fakeServer.create();
-            server.autoRespond = true;
-        });
-
         afterEach(function() {
-            server.restore();
+            fetchMock.restore();
         });
 
         describe('Data Execution:', () => {
@@ -66,21 +61,23 @@ describe('execution', () => {
             });
 
             describe('getData', () => {
+<<<<<<< HEAD
                 it('should resolve with JSON with correct data including headers', done => {
                     const responseMock = JSON.parse(JSON.stringify(serverResponseMock));
 
                     server.respondWith(
+=======
+                it('should resolve with JSON with correct data without headers', () => {
+                    fetchMock.mock(
                         '/gdc/internal/projects/myFakeProjectId/experimental/executions',
-                        [200, {'Content-Type': 'application/json'},
-                        JSON.stringify(responseMock)]
+                        { status: 200, body: JSON.stringify(serverResponseMock)}
                     );
-                    server.respondWith(
+                    fetchMock.mock(
                         /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
-                        [201, {'Content-Type': 'application/json'},
-                        JSON.stringify({'tabularDataResult': {values: ['a', 1]}})]
+                        { status: 201, body: JSON.stringify({'tabularDataResult': {values: ['a', 1]}}) }
                     );
 
-                    ex.getData('myFakeProjectId', ['attrId', 'metricId']).then(function(result) {
+                    return ex.getData('myFakeProjectId', ['attrId', 'metricId']).then(function(result) {
                         expect(result.headers[0].id).to.be('attrId');
                         expect(result.headers[0].uri).to.be('attrUri');
                         expect(result.headers[0].type).to.be('attrLabel');
@@ -91,25 +88,20 @@ describe('execution', () => {
                         expect(result.headers[1].title).to.be('Metric Title');
                         expect(result.rawData[0]).to.be('a');
                         expect(result.rawData[1]).to.be(1);
-                        done();
-                    }, function() {
-                        expect().fail('Should resolve with CSV data');
-                        done();
                     });
                 });
 
-                it('should not fail if tabular data result is missing', done => {
-                    server.respondWith(
+                it('should not fail if tabular data result is missing', () => {
+                    fetchMock.mock(
                         '/gdc/internal/projects/myFakeProjectId/experimental/executions',
-                        [200, {'Content-Type': 'application/json'},
-                        JSON.stringify(serverResponseMock)]
+                        { status: 200, body: JSON.stringify(serverResponseMock) }
                     );
-                    server.respondWith(
+                    fetchMock.mock(
                         /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
-                        [204, {'Content-Type': 'application/json'}, '']
+                        { status: 200, body: JSON.stringify('TEMPORARY_HACK') } // should be just 204, but see https://github.com/wheresrhys/fetch-mock/issues/36
                     );
 
-                    ex.getData('myFakeProjectId', ['attrId', 'metricId']).then(function(result) {
+                    return ex.getData('myFakeProjectId', ['attrId', 'metricId']).then(function(result) {
                         expect(result.rawData).to.eql([]);
                         expect(result.isEmpty).to.be(true);
                         done();
@@ -119,39 +111,29 @@ describe('execution', () => {
                     });
                 });
 
-                it('should reject when execution fails', done => {
-                    server.respondWith(
+                it('should reject when execution fails', () => {
+                    fetchMock.mock(
                         '/gdc/internal/projects/myFakeProjectId/experimental/executions',
-                        [400, {'Content-Type': 'application/json'}, JSON.stringify({'reportDefinition': {'meta': {'uri': '/foo/bar/baz'}}})]
+                        400
                     );
 
-                    ex.getData('myFakeProjectId', ['attrId', 'metricId']).then(function() {
-                        expect().fail('Should reject with 400');
-                        done();
-                    }, function(err) {
-                        expect(err.status).to.be(400);
-                        done();
+                    return ex.getData('myFakeProjectId', ['attrId', 'metricId']).then(null, (err) => {
+                        expect(err).to.be.an(Error);
                     });
                 });
 
-                it('should reject with 400 when data result fails', done => {
-                    server.respondWith(
+                it('should reject with 400 when data result fails', () => {
+                    fetchMock.mock(
                         '/gdc/internal/projects/myFakeProjectId/experimental/executions',
-                        [200, {'Content-Type': 'application/json'},
-                        JSON.stringify(serverResponseMock)]
+                        { status: 200, body: JSON.stringify(serverResponseMock)}
                     );
-                    server.respondWith(
+                    fetchMock.mock(
                         /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
-                        [400, {'Content-Type': 'application/json'},
-                        JSON.stringify({'tabularDataResult': {values: ['a', 1]}})]
+                        { status: 400, body: JSON.stringify({'tabularDataResult': {values: ['a', 1]}}) }
                     );
 
-                    ex.getData('myFakeProjectId', [{type: 'metric', uri: '/metric/uri'}]).then(function() {
-                        expect().fail('Should reject with 400');
-                        done();
-                    }, function(err) {
-                        expect(err.status).to.be(400);
-                        done();
+                    return ex.getData('myFakeProjectId', [{type: 'metric', uri: '/metric/uri'}]).then(null, (err) => {
+                        expect(err).to.be.an(Error);
                     });
                 });
 
@@ -191,6 +173,7 @@ describe('execution', () => {
 
             describe('getData with execution context filters', () => {
                 it('should propagate execution context filters to the server call', () => {
+                    const matcher = '/gdc/internal/projects/myFakeProjectId/experimental/executions';
                     // prepare filters and then use them with getData
                     const filters = [{
                         'uri': '/gdc/md/myFakeProjectId/obj/1',
@@ -199,11 +182,12 @@ describe('execution', () => {
                             'elements': ['/gdc/md/myFakeProjectId/obj/1/elements?id=1']
                         }
                     }];
+                    fetchMock.mock(matcher, 200);
                     ex.getData('myFakeProjectId', ['attrId', 'metricId'], {
                         filters: filters
                     });
-                    const request = server.requests[0];
-                    const requestBody = JSON.parse(request.requestBody);
+                    const [url, settings] = fetchMock.lastCall(matcher);
+                    const requestBody = JSON.parse(settings.body);
 
                     expect(requestBody.execution.filters).to.eql(filters);
                 });
@@ -211,6 +195,7 @@ describe('execution', () => {
 
             describe('getData with order', () => {
                 it('should propagate orderBy to server call', () => {
+                    const matcher = '/gdc/internal/projects/myFakeProjectId/experimental/executions';
                     const orderBy = [
                         {
                             column: 'column1',
@@ -221,21 +206,24 @@ describe('execution', () => {
                             direction: 'desc'
                         }
                     ];
-                    let request;
+                    let url;
+                    let settings;
                     let requestBody;
+                    fetchMock.mock(matcher, 200)
 
                     ex.getData('myFakeProjectId', ['attrId', 'metricId'], {
                         orderBy: orderBy
                     });
 
-                    request = server.requests[0];
-                    requestBody = JSON.parse(request.requestBody);
+                    [url, settings] = fetchMock.lastCall(matcher);
+                    requestBody = JSON.parse(settings.body);
                     expect(requestBody.execution.orderBy).to.eql(orderBy);
                 });
             });
 
             describe('getData with definitions', () => {
                 it('should propagate orderBy to server call', () => {
+                    const matcher = '/gdc/internal/projects/myFakeProjectId/experimental/executions';
                     const definitions = [
                         {
                             metricDefinition: {
@@ -246,13 +234,14 @@ describe('execution', () => {
                             }
                         }
                     ];
+                    fetchMock.mock(matcher, 200);
                     ex.getData('myFakeProjectId', ['attrId', 'metricId'], {
                         definitions: definitions
                     });
 
                     /*eslint-disable vars-on-top*/
-                    const request = server.requests[0];
-                    const requestBody = JSON.parse(request.requestBody);
+                    const [url, settings] = fetchMock.lastCall(matcher);
+                    const requestBody = JSON.parse(settings.body);
                     /*eslint-enable vars-on-top*/
                     expect(requestBody.execution.definitions).to.eql(definitions);
                 });
@@ -261,6 +250,8 @@ describe('execution', () => {
             describe('getData with query language filters', () => {
                 it('should propagate filters to the server call', () => {
                     // prepare filters and then use them with getData
+                    const matcher = '/gdc/internal/projects/myFakeProjectId/experimental/executions';
+                    fetchMock.mock(matcher, 200);
                     const where = {
                         'label.attr.city': { '$eq': 1 }
                     };
@@ -268,8 +259,8 @@ describe('execution', () => {
                         where: where
                     });
                     /*eslint-disable vars-on-top*/
-                    const request = server.requests[0];
-                    const requestBody = JSON.parse(request.requestBody);
+                    const [url, settings] = fetchMock.lastCall(matcher);
+                    const requestBody = JSON.parse(settings.body);
                     /*eslint-enable vars-on-top*/
 
                     expect(requestBody.execution.where).to.eql(where);
