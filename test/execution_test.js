@@ -139,10 +139,6 @@ describe('execution', () => {
                     return ex.getData('myFakeProjectId', ['attrId', 'metricId']).then((result) => {
                         expect(result.rawData).to.eql([]);
                         expect(result.isEmpty).to.be(true);
-                        done();
-                    }, function() {
-                        expect().fail('Should resolve with empty data');
-                        done();
                     });
                 });
 

@@ -5,7 +5,7 @@ import {
     isPlainObject,
     merge
 } from 'lodash';
-import 'isomorphic-fetch'
+import 'isomorphic-fetch';
 
 /**
  * Ajax wrapper around GDC authentication mechanisms, SST and TT token handling and polling.

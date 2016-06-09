@@ -1,5 +1,5 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
-import isPlainObject from 'lodash/lang/isPlainObject';
+import { isPlainObject } from 'lodash';
 import { ajax, get, post } from './xhr';
 import { getIn } from './util';
 import { get as _get, chunk, flatten } from 'lodash';
