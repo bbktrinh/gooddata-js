@@ -31,8 +31,13 @@ module.exports = function(grunt) {
         karma: {
             unit: {
                 configFile: 'tools/karma.conf.js',
-                singleRun: grunt.option('ci'),
-                autoWatch: !grunt.option('ci')
+                singleRun: false,
+                autoWatch: true
+            },
+            ci: {
+                configFile: 'tools/karma.conf.js',
+                singleRun: true,
+                autoWatch: false
             }
         },
         grizzly: {
@@ -232,14 +237,15 @@ module.exports = function(grunt) {
     });
 
     grunt.registerTask('release', [
-        'test',
+        'test-ci',
         'bump',
         'init-bower-repo',
         'dist',
         'release-bower-component'
     ]);
 
-    grunt.registerTask('test', ['eslint', 'karma']);
+    grunt.registerTask('test', ['eslint', 'karma:unit']);
+    grunt.registerTask('test-ci', ['eslint', 'karma:ci']);
     grunt.registerTask('dev', ['grizzly', 'watch']);
     grunt.registerTask('doc', ['yuidoc']);
     grunt.registerTask('validate', ['eslint']);

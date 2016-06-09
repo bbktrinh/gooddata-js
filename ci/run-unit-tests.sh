@@ -15,8 +15,7 @@ coverage=0
 
 if [[ $1 = "-c" ]]; then
     echo "Coverage enabled."
-    test_opts="$test_opts --ci"
     coverage=1
 fi
 
-grunt test $test_opts
+grunt test-ci $test_opts
