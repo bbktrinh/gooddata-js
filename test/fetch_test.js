@@ -1,6 +1,7 @@
 // Copyright (C) 2007-2013, GoodData(R) Corporation. All rights reserved.
-import * as xhr from '../src/xhr';
 import fetchMock from 'fetch-mock';
+
+import * as xhr from '../src/xhr';
 import { setCustomDomain } from '../src/config';
 
 describe('fetch', () => {

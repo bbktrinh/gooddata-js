@@ -40,6 +40,21 @@ module.exports = function(grunt) {
                 autoWatch: false
             }
         },
+        mochaTest: {
+            test: {
+                options: {
+                    reporter: 'spec',
+                    quiet: false,
+                    require: [
+                        'babel-core/register',
+                        'isomorphic-fetch',
+                        function() { expect = require('expect.js'); },
+                        function() { sinon = require('sinon'); }
+                    ]
+                },
+                src: ['test/*_test.js']
+            }
+        },
         grizzly: {
             options: {
                 root: 'examples/'
@@ -140,6 +155,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-karma');
     grunt.loadNpmTasks('grunt-contrib-yuidoc');
     grunt.loadNpmTasks('grunt-gh-pages');
+    grunt.loadNpmTasks('grunt-mocha-test');
 
     grunt.registerTask('default', ['dist']);
     grunt.registerTask('dist', [
@@ -245,7 +261,7 @@ module.exports = function(grunt) {
     ]);
 
     grunt.registerTask('test', ['eslint', 'karma:unit']);
-    grunt.registerTask('test-ci', ['eslint', 'karma:ci']);
+    grunt.registerTask('test-ci', ['eslint', 'karma:ci', 'mochaTest']);
     grunt.registerTask('dev', ['grizzly', 'watch']);
     grunt.registerTask('doc', ['yuidoc']);
     grunt.registerTask('validate', ['eslint']);
