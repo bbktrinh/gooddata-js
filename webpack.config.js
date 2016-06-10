@@ -32,16 +32,6 @@ module.exports = {
             'Promise': 'imports?this=>global!exports?global.Promise!es6-promise',
             'fetch': 'imports?this=>global!exports?global.fetch!isomorphic-fetch'
         })
-    ],
-    externals: {
-        // require('jquery') is external and available
-        //  on the global var jQuery
-        'jquery': {
-            root: 'jQuery',
-            commonjs: 'jquery',
-            commonjs2: 'jquery',
-            amd: 'jquery'
-        }
-    }
+    ]
 };
 
