@@ -32,7 +32,8 @@ module.exports = function(grunt) {
             unit: {
                 configFile: 'tools/karma.conf.js',
                 singleRun: false,
-                autoWatch: true
+                autoWatch: false,
+                background: true
             },
             ci: {
                 configFile: 'tools/karma.conf.js',
@@ -67,6 +68,11 @@ module.exports = function(grunt) {
             js: {
                 files: ['src/*.js', 'examples/**/*.js', 'examples/**/*.html', '!examples/gooddata.js'],
                 tasks: ['webpack:build-dev', 'copy:examples'],
+                nospawn: true
+            },
+            tests: {
+                files: ['src/*.js', 'test/*_test.js'],
+                tasks: ['mochaTest:test', 'karma:unit:run'],
                 nospawn: true
             }
         },
@@ -260,9 +266,9 @@ module.exports = function(grunt) {
         'release-bower-component'
     ]);
 
-    grunt.registerTask('test', ['eslint', 'karma:unit']);
+    grunt.registerTask('test', ['eslint', 'karma:unit:start', 'watch:tests']);
     grunt.registerTask('test-ci', ['eslint', 'karma:ci', 'mochaTest']);
-    grunt.registerTask('dev', ['grizzly', 'watch']);
+    grunt.registerTask('dev', ['grizzly', 'watch:js']);
     grunt.registerTask('doc', ['yuidoc']);
     grunt.registerTask('validate', ['eslint']);
 };
