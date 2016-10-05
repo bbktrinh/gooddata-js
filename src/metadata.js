@@ -38,7 +38,7 @@ export function getObjects(projectId, objectUris) {
         }).then(result => _get(result, ['objects', 'items']));
     });
 
-    return $.when.apply(this, promises).then((...resultingEntries) => {
+    return Promise.all(promises).then((...resultingEntries) => {
         return flatten(resultingEntries);
     });
 }
