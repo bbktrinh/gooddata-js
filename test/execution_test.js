@@ -61,47 +61,8 @@ describe('execution', () => {
             });
 
             describe('getData', () => {
-                it('should resolve with JSON with correct data without headers', () => {
-                    fetchMock.mock(
-                        '/gdc/internal/projects/myFakeProjectId/experimental/executions',
-                        { status: 200, body: JSON.stringify(serverResponseMock)}
-                    );
-                    fetchMock.mock(
-                        /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
-                        { status: 201, body: JSON.stringify({'tabularDataResult': {values: ['a', 1]}}) }
-                    );
-
-                    return ex.getData('myFakeProjectId', ['attrId', 'metricId']).then((result) => {
-                        expect(result.headers[0].id).to.be('attrId');
-                        expect(result.headers[0].uri).to.be('attrUri');
-                        expect(result.headers[0].type).to.be('attrLabel');
-                        expect(result.headers[0].title).to.be('Df Title');
-                        expect(result.headers[1].id).to.be('metricId');
-                        expect(result.headers[1].uri).to.be('metricUri');
-                        expect(result.headers[1].type).to.be('metric');
-                        expect(result.headers[1].title).to.be('Metric Title');
-                        expect(result.rawData[0]).to.be('a');
-                        expect(result.rawData[1]).to.be(1);
-                    });
-                });
-
                 it('should resolve with JSON with correct data including headers', () => {
                     const responseMock = JSON.parse(JSON.stringify(serverResponseMock));
-
-                    responseMock.executionResult.headers = [
-                        {
-                            id: 'attrId',
-                            title: 'Atribute Title',
-                            type: 'attrLabel',
-                            uri: 'attrUri'
-                        },
-                        {
-                            id: 'metricId',
-                            title: 'Metric Title',
-                            type: 'metric',
-                            uri: 'metricUri'
-                        }
-                    ];
 
                     fetchMock.mock(
                         '/gdc/internal/projects/myFakeProjectId/experimental/executions',
@@ -133,7 +94,7 @@ describe('execution', () => {
                     );
                     fetchMock.mock(
                         /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
-                        { status: 200, body: JSON.stringify('TEMPORARY_HACK') } // should be just 204, but see https://github.com/wheresrhys/fetch-mock/issues/36
+                        { status: 204 }
                     );
 
                     return ex.getData('myFakeProjectId', ['attrId', 'metricId']).then((result) => {
@@ -148,8 +109,9 @@ describe('execution', () => {
                         400
                     );
 
-                    return ex.getData('myFakeProjectId', ['attrId', 'metricId']).then(null, (err) => {
+                    return ex.getData('myFakeProjectId', ['attrId', 'metricId']).catch((err) => {
                         expect(err).to.be.an(Error);
+                        expect(err.response.status).to.be(400);
                     });
                 });
 
@@ -175,7 +137,7 @@ describe('execution', () => {
                     );
                     fetchMock.mock(
                         /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
-                        { status: 204, body: '' }
+                        { status: 204 }
                     );
 
                     return ex.getData(
@@ -195,7 +157,7 @@ describe('execution', () => {
                             measureIndex: 0,
                             isPoP: undefined
                         });
-                    }, function() {
+                    }).catch(() => {
                         expect().fail('Should not fail when processing mappings');
                     });
                 });
@@ -1063,7 +1025,7 @@ describe('execution', () => {
                 );
             });
 
-            it.only('when metric is PoP', () => {
+            it('when metric is PoP', () => {
                 mdObj.buckets.measures = [
                     {
                         'measure': {
@@ -1078,7 +1040,6 @@ describe('execution', () => {
                     }
                 ];
                 return ex.getDataForVis('myFakeProjectId', mdObj, {}).then(() => {
-                    console.log(fetchMock.lastCall(executionUriMatcher));
                     const [, settings] = fetchMock.lastCall(executionUriMatcher);
                     const request = JSON.parse(settings.body);
                     expect(request.execution.definitions[0].metricDefinition.format).to.be('someone changed me');

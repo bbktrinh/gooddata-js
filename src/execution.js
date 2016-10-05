@@ -94,7 +94,9 @@ export function getData(projectId, columns, executionConfiguration = {}, setting
     })
     .then(r => {
         if (!r.ok) {
-            throw new Error(`Request to ${r.url} failed, status: ${r.status}`);
+            const err = new Error(r.statusText);
+            err.response = r;
+            throw err;
         }
         return r.json();
     })
@@ -106,14 +108,30 @@ export function getData(projectId, columns, executionConfiguration = {}, setting
         return ajax(result.executionResult.tabularDataResult, settings);
     }).then(r => {
         if (!r.ok) {
-            throw new Error(`Request to ${r.url} failed, status: ${r.status}`);
+            const err = new Error(r.statusText);
+            err.response = r;
+            throw err;
         }
-        return r.json();
-    }).then(function resolveDataResultPolling(result) {
+
+        if (r.status === 204) {
+            return {
+                status: r.status,
+                result: ''
+            };
+        }
+
+        return r.json().then(result => {
+            return {
+                status: r.status,
+                result
+            };
+        });
+    }).then(r => {
+        const {result, status} = r;
         // After the retrieving computed tabularData, resolve the promise
         executedReport.rawData = (result && result.tabularDataResult) ? result.tabularDataResult.values : [];
         executedReport.isLoaded = true;
-        executedReport.isEmpty = (result.status === 204);
+        executedReport.isEmpty = (status === 204);
         return executedReport;
     });
 }
@@ -491,7 +509,7 @@ const getOriginalMetricFormats = (mdObj) => {
         map(get(mdObj, 'buckets.measures'), ({ measure }) => measure),
         (measure) => {
             if (measure.showPoP === true || measure.measureFilters.length > 0) {
-                return xhrGet(measure.objectUri).then((obj) => {
+                return xhrGet(measure.objectUri).then(r => r.json()).then((obj) => {
                     return {
                         ...measure,
                         format: get(obj, 'metric.content.format', measure.format)
@@ -505,8 +523,8 @@ const getOriginalMetricFormats = (mdObj) => {
 };
 
 export const getDataForVis = (projectId, mdObj, settings) => {
-    return getOriginalMetricFormats(mdObj).then((...measures) => {
-        mdObj.buckets.measures = map([...measures], (measure) => ({ measure }));
+    return getOriginalMetricFormats(mdObj).then((measures) => {
+        mdObj.buckets.measures = map(measures, (measure) => ({ measure }));
         const { columns, ...executionConfiguration } = mdToExecutionConfiguration(mdObj);
         return getData(projectId, columns, executionConfiguration, settings);
     });
