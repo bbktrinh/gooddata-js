@@ -1,5 +1,5 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
-import { ajax, get, post } from './xhr';
+import { ajax, get, post, put } from './xhr';
 
 /**
  * @module user
@@ -76,15 +76,9 @@ export function logout() {
  * @param {Object} profileSetting
 */
 export function updateProfileSettings(profileId, profileSetting) {
-    /*eslint-disable new-cap*/
-    const d = $.Deferred();
-    /*eslint-enable new-cap*/
-
-    put('/gdc/account/profile/' + profileId + '/settings', {
+    return put('/gdc/account/profile/' + profileId + '/settings', {
         data: profileSetting
-    }).then(d.resolve, d.reject);
-
-    return d.promise();
+    });
 }
 
 /**

@@ -107,19 +107,19 @@ describe('user', () => {
         });
 
         describe('updateProfileSettings', () => {
-            it('should update user\'s settings', done => {
+            it('should update user\'s settings', () => {
                 const userId = 'USER_ID';
 
-                server.respondWith(
+                fetchMock.mock(
                     '/gdc/account/profile/' + userId + '/settings',
-                    [400, {'Content-Type': 'application/json'}, '']
+                    { status: 400, body: '' }
                 );
-                user.updateProfileSettings(userId, []).then(function() {
-                    expect().fail('Should reject with 400');
-                    done();
-                }, function(err) {
-                    expect(err.status).to.be(400);
-                    done();
+                return user.updateProfileSettings(userId, []).then(r => {
+                    if (r.ok) {
+                        expect().fail('Should reject with 400');
+                    }
+
+                    expect(r.status).to.be(400);
                 });
             });
         });
