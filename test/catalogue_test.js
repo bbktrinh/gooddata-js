@@ -3,8 +3,6 @@ import * as xhr from '../src/xhr';
 import * as catalogue from '../src/catalogue';
 import { cloneDeep, get, set } from 'lodash';
 
-import Promise from 'bluebird';
-
 describe('Catalogue', () => {
     const projectId = 'some_id';
     let ajax;
