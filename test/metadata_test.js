@@ -331,6 +331,8 @@ describe('metadata', () => {
 
                 return md.getObjectUsing(projectId, object, { types }).then(() => {
                     expect().fail('Should reject the promise on 400 response');
+                }).catch(err => {
+                    expect(err.response.status).to.be(400);
                 });
             });
         });
@@ -414,6 +416,8 @@ describe('metadata', () => {
 
                 return md.getObjectUsingMany(projectId, objects, { types }).then(() => {
                     expect().fail('Should reject the promise on 400 response');
+                }).catch(err => {
+                    expect(err.response.status).to.be(400);
                 });
             });
         });
@@ -508,8 +512,10 @@ describe('metadata', () => {
                     { status: 400, body: JSON.stringify({}) }
                 );
 
-                md.getObjects(projectId, uris).then(() => {
+                return md.getObjects(projectId, uris).then(() => {
                     expect().fail('Should reject the promise on 400 response');
+                }).catch(err => {
+                    expect(err.response.status).to.be(400);
                 });
             });
         });

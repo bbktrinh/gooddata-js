@@ -35,12 +35,18 @@ export function getObjects(projectId, objectUris) {
 
         return post(uri, {
             data: JSON.stringify(data)
+        }).then(r => {
+            if (!r.ok) {
+                const err = new Error(r.statusText);
+                err.response = r;
+                throw err;
+            }
+
+            return r.json();
         }).then(result => _get(result, ['objects', 'items']));
     });
 
-    return Promise.all(promises).then((...resultingEntries) => {
-        return flatten(resultingEntries);
-    });
+    return Promise.all(promises).then(flatten);
 }
 
 /**
@@ -70,6 +76,14 @@ export function getObjectUsing(projectId, uri, options = {}) {
 
     return post(resourceUri, {
         data: JSON.stringify(data)
+    }).then(r => {
+        if (!r.ok) {
+            const err = new Error(r.statusText);
+            err.response = r;
+            throw err;
+        }
+
+        return r.json();
     }).then(result => result.entries);
 }
 
@@ -100,6 +114,14 @@ export function getObjectUsingMany(projectId, uris, options = {}) {
 
     return post(resourceUri, {
         data: JSON.stringify(data)
+    }).then(r => {
+        if (!r.ok) {
+            const err = new Error(r.statusText);
+            err.response = r;
+            throw err;
+        }
+
+        return r.json();
     }).then(result => result.useMany);
 }
 
