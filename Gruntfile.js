@@ -47,7 +47,7 @@ module.exports = function(grunt) {
                     reporter: 'spec',
                     quiet: false,
                     require: [
-                        'babel-core/register',
+                        'babel-register',
                         'isomorphic-fetch',
                         function() { expect = require('expect.js'); },
                         function() { sinon = require('sinon'); }
