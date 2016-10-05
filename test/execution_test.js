@@ -169,14 +169,13 @@ describe('execution', () => {
                 });
 
                 it('should wrap response headers with metric mappings', () => {
-                    server.respondWith(
+                    fetchMock.mock(
                         '/gdc/internal/projects/myFakeProjectId/experimental/executions',
-                        [200, {'Content-Type': 'application/json'},
-                            JSON.stringify(serverResponseMock)]
+                        { status: 200, body: JSON.stringify(serverResponseMock) }
                     );
-                    server.respondWith(
+                    fetchMock.mock(
                         /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
-                        [204, {'Content-Type': 'application/json'}, '']
+                        { status: 204, body: '' }
                     );
 
                     return ex.getData(
@@ -1002,6 +1001,7 @@ describe('execution', () => {
                     ]
                 }
             };
+            const executionUriMatcher = '/gdc/internal/projects/myFakeProjectId/experimental/executions';
 
             beforeEach(() => {
                 const responseMock = { metric: { content: { format: 'someone changed me' } } };
@@ -1047,29 +1047,23 @@ describe('execution', () => {
                         tabularDataResult: '/gdc/internal/projects/myFakeProjectId/experimental/executions/23452345'
                     }
                 };
-                server.respondWith(
+                fetchMock.mock(
                     '/gdc/md/myFakeProjectId/obj/1',
-                    [200, {'Content-Type': 'application/json'},
-                        JSON.stringify(responseMock)]
+                    { status: 200, body: JSON.stringify(responseMock) }
                 );
 
-                server.respondWith(
-                    '/gdc/internal/projects/myFakeProjectId/experimental/executions',
-                    [200, {'Content-Type': 'application/json'},
-                        JSON.stringify(serverResponseMock)]
+                fetchMock.mock(
+                    executionUriMatcher,
+                    { status: 200, body: JSON.stringify(serverResponseMock) }
                 );
-                server.respondWith(
-                    /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
-                    [201, {'Content-Type': 'application/json'},
-                        JSON.stringify({'tabularDataResult': {values: ['a', 1]}})]
+
+                fetchMock.mock(
+                     /\/gdc\/internal\/projects\/myFakeProjectId\/experimental\/executions\/(\w+)/,
+                    { status: 201, body: JSON.stringify({'tabularDataResult': {values: ['a', 1]}}) }
                 );
             });
 
-            afterEach(() => {
-                server.restore();
-            });
-
-            it('when metric is PoP', () => {
+            it.only('when metric is PoP', () => {
                 mdObj.buckets.measures = [
                     {
                         'measure': {
@@ -1084,7 +1078,9 @@ describe('execution', () => {
                     }
                 ];
                 return ex.getDataForVis('myFakeProjectId', mdObj, {}).then(() => {
-                    const request = JSON.parse(server.requests[1].requestBody);
+                    console.log(fetchMock.lastCall(executionUriMatcher));
+                    const [, settings] = fetchMock.lastCall(executionUriMatcher);
+                    const request = JSON.parse(settings.body);
                     expect(request.execution.definitions[0].metricDefinition.format).to.be('someone changed me');
                 });
             });
@@ -1118,7 +1114,8 @@ describe('execution', () => {
                     }
                 ];
                 return ex.getDataForVis('myFakeProjectId', mdObj, {}).then(() => {
-                    const request = JSON.parse(server.requests[1].requestBody);
+                    const [, settings] = fetchMock.lastCall(executionUriMatcher);
+                    const request = JSON.parse(settings.body);
                     expect(request.execution.definitions[0].metricDefinition.format).to.be('someone changed me');
                 });
             });

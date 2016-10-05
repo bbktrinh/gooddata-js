@@ -103,7 +103,7 @@ export function getData(projectId, columns, executionConfiguration = {}, setting
             get(executionConfiguration, 'metricMappings'), result.executionResult.headers);
 
         // Start polling on url returned in the executionResult for tabularData
-        return ajax(result.executionResult.tabularDataResult);
+        return ajax(result.executionResult.tabularDataResult, settings);
     }).then(r => {
         if (!r.ok) {
             throw new Error(`Request to ${r.url} failed, status: ${r.status}`);
@@ -487,7 +487,7 @@ export const mdToExecutionConfiguration = (mdObj, options = {}) => {
 
 const getOriginalMetricFormats = (mdObj) => {
     // for metrics with showPoP or measureFilters.length > 0 roundtrip for original metric format
-    return $.when.apply(undefined, map(
+    return Promise.all(map(
         map(get(mdObj, 'buckets.measures'), ({ measure }) => measure),
         (measure) => {
             if (measure.showPoP === true || measure.measureFilters.length > 0) {
@@ -499,9 +499,7 @@ const getOriginalMetricFormats = (mdObj) => {
                 });
             }
 
-            /* eslint-disable new-cap */
-            return $.Deferred().resolve(measure);
-            /* eslint-enable new-cap */
+            return Promise.resolve(measure);
         }
     ));
 };
