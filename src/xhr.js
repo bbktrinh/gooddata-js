@@ -40,7 +40,9 @@ function enrichSettingWithCustomDomain(originalUrl, settings, domain) {
 function continueAfterTokenRequest(url, settings) {
     return tokenRequest.then(response => {
         if (!response.ok) {
-            throw new Error('Unauthorized');
+            const err = new Error('Unauthorized');
+            err.response = response;
+            throw err;
         }
         tokenRequest = null;
 
@@ -67,7 +69,9 @@ function handleUnauthorized(originalUrl, originalSettings) {
             // unauthorized handler is not defined or not http 401
             // unauthorized when retrieving token -> not logged
             if (response.status === 401) {
-                throw new Error('Unauthorized');
+                const err = new Error('Unauthorized');
+                err.response = response;
+                throw err;
             }
 
             return response;
@@ -79,6 +83,32 @@ function handleUnauthorized(originalUrl, originalSettings) {
 function isLoginRequest(url) {
     return url.indexOf('/gdc/account/login') !== -1;
 }
+
+/**
+ * @param {Response} response
+ * @return {Promise} promise which resolves to result JSON ()
+ */
+const parseJSON = (response) => {
+    return response.json();
+};
+
+/**
+ * @param {Response} response see https://developer.mozilla.org/en-US/docs/Web/API/Response
+ * @return {Response} or {Error}
+ */
+const checkStatus = (response) => {
+    if (response.status >= 200 && response.status < 399) {
+        return response;
+    }
+
+    if (response instanceof Error && response.hasOwnProperty('response') ) {
+        throw response;
+    }
+
+    const error = new Error(response.statusText);
+    error.response = response;
+    throw error;
+};
 
 export function ajax(originalUrl, tempSettings = {}) {
     const firstSettings = createSettings(tempSettings);
@@ -93,7 +123,9 @@ export function ajax(originalUrl, tempSettings = {}) {
         // are not authorized
         if (response.status === 401) {
             if (isLoginRequest(url)) {
-                throw new Error('Unauthorized');
+                const err = new Error('Unauthorized');
+                err.response = response;
+                throw err;
             }
 
             return handleUnauthorized(url, settings);
@@ -112,7 +144,7 @@ export function ajax(originalUrl, tempSettings = {}) {
             return handlePolling(finalUrl, finalSettings);
         }
         return response;
-    }); // TODO handle polling
+    }).then(checkStatus);
 }
 
 function createSettings(settings) {
@@ -158,6 +190,11 @@ function xhrMethod(method) {
  * @method get
  */
 export const get = xhrMethod('GET');
+
+/**
+ *
+ */
+export const getJSON = (url, settings) => get(url, settings).then(parseJSON);
 
 /**
  * Wrapper for xhr.ajax method POST

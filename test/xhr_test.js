@@ -31,8 +31,10 @@ describe('fetch', () => {
 
         it('should handle unsuccessful request', () => {
             fetchMock.mock('/some/url', 404);
-            return xhr.ajax('/some/url').then(r => {
-                expect(r.status).to.be(404);
+            return xhr.ajax('/some/url').then(() => {
+                expect().fail('should be rejected');
+            }, err => {
+                expect(err.response.status).to.be(404);
             });
         });
 
@@ -62,8 +64,8 @@ describe('fetch', () => {
         it('should fail if token renewal fails', () => {
             fetchMock.mock('/some/url', 401)
                      .mock('/gdc/account/token', 401);
-            return xhr.ajax('/some/url').then(null, r => {
-                expect(r).to.eql(new Error('Unauthorized'));
+            return xhr.ajax('/some/url').then(null, err => {
+                expect(err.response.status).to.be(401);
             });
         });
 
@@ -131,8 +133,8 @@ describe('fetch', () => {
                 return 404;
             });
 
-            return xhr.ajax('/some/url', { pollDelay: 0 }).then(r => {
-                expect(r.status).to.be(404);
+            return xhr.ajax('/some/url', { pollDelay: 0 }).then(null, err => {
+                expect(err.response.status).to.be(404);
             });
         });
     });
@@ -186,8 +188,8 @@ describe('fetch', () => {
                 return 404;
             });
 
-            return xhr.ajax('/some/url', { pollDelay: 0 }).then(r => {
-                expect(r.status).to.be(404);
+            return xhr.ajax('/some/url', { pollDelay: 0 }).then(null, err => {
+                expect(err.response.status).to.be(404);
                 expect(fetchMock.calls('/some/url').length).to.be(1);
                 expect(fetchMock.calls('/other/url').length).to.be(3);
             });
