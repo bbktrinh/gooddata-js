@@ -15,12 +15,20 @@ import { ajax, get, post, put } from './xhr';
  * @method isLoggedIn
  */
 export function isLoggedIn() {
-    return get('/gdc/account/token').then(r => {
-        if (r.ok) {
-            return true;
-        }
+    return new Promise((resolve, reject) => {
+        get('/gdc/account/token').then(r => {
+            if (r.ok) {
+                resolve(true);
+            }
 
-        return false;
+            resolve(false);
+        }, err => {
+            if (err.response.status === 401) {
+                resolve(false);
+            } else {
+                reject(err);
+            }
+        });
     });
 }
 

@@ -49,13 +49,15 @@ describe('user', () => {
                 return user.isLoggedIn().then(r => expect(r).to.be.ok());
             });
 
-            it('should reject with 401 if user not logged in', () => {
+            it('should resolve with false if user not logged in', () => {
                 fetchMock.mock(
                     '/gdc/account/token',
                     'GET',
                     401
                 );
-                return user.isLoggedIn().then(r => expect(r).not.to.be.ok());
+                return user.isLoggedIn().then(r => {
+                    expect(r).not.to.be.ok();
+                });
             });
         });
 
@@ -114,12 +116,10 @@ describe('user', () => {
                     '/gdc/account/profile/' + userId + '/settings',
                     { status: 400, body: '' }
                 );
-                return user.updateProfileSettings(userId, []).then(r => {
-                    if (r.ok) {
-                        expect().fail('Should reject with 400');
-                    }
-
-                    expect(r.status).to.be(400);
+                return user.updateProfileSettings(userId, []).then(() => {
+                    expect().fail('Should reject with 400');
+                }, err => {
+                    expect(err.response.status).to.be(400);
                 });
             });
         });
