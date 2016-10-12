@@ -468,20 +468,23 @@ describe('metadata', () => {
                 });
             });
 
-            it.skip('should load elements chunked', () => {
+            it('should load elements chunked', () => {
                 const { uris, respondEntries } = generateUrisAndResponse(projectId, 80);
 
-                fetchMock.mock(request => {
-                    const requestBody = JSON.parse(request.requestBody);
+                fetchMock.mock(`/gdc/md/${projectId}/objects/get`, (url, opts) => {
+                    const requestBody = JSON.parse(opts.data);
 
                     // respond with only those items which were requested
                     const respondItems = requestBody.get.items.map(itemUri =>
                         find(respondEntries, responseItem => responseItem.meta.uri === itemUri));
 
-                    request.respond(200, {'Content-Type': 'application/json'},
-                        JSON.stringify({ objects: {
+                    return {
+                        body: JSON.stringify({ objects: {
                             items: respondItems
-                        }}));
+                        }}),
+                        status: 200,
+                        headers: {'Content-Type': 'application/json'}
+                    };
                 });
 
                 return md.getObjects(projectId, uris).then(result => {
