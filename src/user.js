@@ -1,5 +1,5 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
-import { ajax, get, post, put } from './xhr';
+import { ajax, get, post, put, parseJSON } from './xhr';
 
 /**
  * @module user
@@ -9,14 +9,14 @@ import { ajax, get, post, put } from './xhr';
 /**
  * Find out whether a user is logged in
  *
- * Returns a promise which either:
- * **resolves** - which means user is logged in or
- * **rejects** - meaning is not logged in
+ * @return {Promise} resolves with true if user logged in, false otherwise
  * @method isLoggedIn
  */
 export function isLoggedIn() {
     return new Promise((resolve, reject) => {
-        get('/gdc/account/token').then(r => {
+        // cannot use get here directly - we need to access to response
+        // not to responses JSON get returns
+        ajax('/gdc/account/token', { method: 'GET' }).then(r => {
             if (r.ok) {
                 resolve(true);
             }
@@ -53,7 +53,7 @@ export function login(username, password) {
                 verifyCaptcha: ''
             }
         })
-    }).then(r => r.ok ? r.json() : r);
+    }).then(parseJSON);
 }
 
 /**
@@ -63,7 +63,7 @@ export function login(username, password) {
 export function logout() {
     return isLoggedIn().then((loggedIn) => {
         if (loggedIn) {
-            return get('/gdc/app/account/bootstrap').then(r => r.ok ? r.json() : r).then((result) => {
+            return get('/gdc/app/account/bootstrap').then((result) => {
                 const userUri = result.bootstrapResource.accountSetting.links.self;
                 const userId = userUri.match(/([^\/]+)\/?$/)[1];
 
@@ -95,7 +95,6 @@ export function updateProfileSettings(profileId, profileSetting) {
  */
 export function getAccountInfo() {
     return get('/gdc/app/account/bootstrap')
-        .then(r => r.json())
         .then(function resolveBootstrap(result) {
             const br = result.bootstrapResource;
             const accountInfo = {

@@ -1,5 +1,5 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
-import { ajax, get, put } from './xhr';
+import { ajax, get, put, parseJSON } from './xhr';
 import { getIn } from './util';
 
 /**
@@ -17,7 +17,7 @@ import { getIn } from './util';
  * @return {String} current project identifier
  */
 export function getCurrentProjectId() {
-    return get('/gdc/app/account/bootstrap').then(r => r.ok ? r.json() : r).then(result => {
+    return get('/gdc/app/account/bootstrap').then(result => {
         const currentProject = result.bootstrapResource.current.project;
         // handle situation in which current project is missing (e.g. new user)
         if (!currentProject) {
@@ -36,13 +36,7 @@ export function getCurrentProjectId() {
  * @return {Array} An Array of projects
  */
 export function getProjects(profileId) {
-    return get('/gdc/account/profile/' + profileId + '/projects').then(r => {
-        if (!r.ok) {
-            throw new Error(r.statusText);
-        }
-
-        return r.json();
-    }).then((r) => {
+    return get('/gdc/account/profile/' + profileId + '/projects').then((r) => {
         return r.projects.map(p => p.project);
     });
 }
@@ -55,7 +49,7 @@ export function getProjects(profileId) {
  * @return {Array} An array of objects containing datasets metadata
  */
 export function getDatasets(projectId) {
-    return get('/gdc/md/' + projectId + '/query/datasets').then(r => r.ok ? r.json() : r).then(getIn('query.entries'));
+    return get('/gdc/md/' + projectId + '/query/datasets').then(getIn('query.entries'));
 }
 
 const DEFAULT_PALETTE = [
@@ -89,7 +83,7 @@ const DEFAULT_PALETTE = [
  * color palette
  */
 export function getColorPalette(projectId) {
-    return get('/gdc/projects/' + projectId + '/styleSettings').then(r => r.ok ? r.json() : r).then((result) => {
+    return get('/gdc/projects/' + projectId + '/styleSettings').then((result) => {
         return result.styleSettings.chartPalette.map(c => {
             return {
                 r: c.fill.r,
@@ -118,11 +112,8 @@ export function setColorPalette(projectId, colors) {
     return put('/gdc/projects/' + projectId + '/styleSettings', {
         data: {
             styleSettings: {
-                chartPalette: colors.map(function mapColorToObject(c, idx) {
-                    return {
-                        guid: 'guid' + idx,
-                        fill: c
-                    };
+                chartPalette: colors.map((fill, idx) => {
+                    return { fill, guid: `guid${idx}` };
                 })
             }
         }
@@ -144,7 +135,7 @@ export function setColorPalette(projectId, colors) {
 export function getTimezone(projectId) {
     const bootstrapUrl = '/gdc/app/account/bootstrap?projectId=' + projectId;
 
-    return get(bootstrapUrl).then(r => r.ok ? r.json() : r).then(result => {
+    return get(bootstrapUrl).then(result => {
         return result.bootstrapResource.current.timezone;
     });
 }
@@ -158,6 +149,6 @@ export function setTimezone(projectId, timezone) {
     return ajax(timezoneServiceUrl, {
         method: 'POST',
         body: data
-    }).then(r => r.ok ? r.json() : r);
+    }).then(parseJSON);
 }
 

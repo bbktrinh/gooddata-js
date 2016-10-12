@@ -88,7 +88,7 @@ function isLoginRequest(url) {
  * @param {Response} response
  * @return {Promise} promise which resolves to result JSON ()
  */
-const parseJSON = (response) => {
+export const parseJSON = (response) => {
     return response.json();
 };
 
@@ -189,12 +189,11 @@ function xhrMethod(method) {
  * Wrapper for xhr.ajax method GET
  * @method get
  */
-export const get = xhrMethod('GET');
+export const get = (url, settings) => {
+    const opts = merge({ method: 'GET' }, settings);
 
-/**
- *
- */
-export const getJSON = (url, settings) => get(url, settings).then(parseJSON);
+    return ajax(url, opts).then(parseJSON);
+};
 
 /**
  * Wrapper for xhr.ajax method POST

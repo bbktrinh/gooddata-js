@@ -1,6 +1,6 @@
 // Copyright (C) 2007-2014, GoodData(R) Corporation. All rights reserved.
 import { isPlainObject } from 'lodash';
-import { ajax, get, post } from './xhr';
+import { ajax, get, post, parseJSON } from './xhr';
 import { getIn } from './util';
 import { get as _get, chunk, flatten } from 'lodash';
 
@@ -138,7 +138,7 @@ export function getObjectUsingMany(projectId, uris, options = {}) {
 export function getElementDetails(elementUris) {
     const fns = elementUris.map(uri => get(uri));
 
-    Promise.all(fns).then((...args) => { // TODO add map to r.json()
+    return Promise.all(fns).then((...args) => {
         const enriched = args.map(element => {
             const root = element[0];
             if (root.attributeDisplayForm) {
@@ -466,7 +466,7 @@ export function getAvailableFacts(projectId, items) {
  * @return {Object} object details
  */
 export function getObjectDetails(uri) {
-    return get(uri).then(r => r.ok ? r.json() : r);
+    return get(uri);
 }
 
 /**
@@ -514,18 +514,18 @@ export function getObjectUri(projectId, identifier) {
         body: {
             identifierToUri: [identifier]
         }
-    }).then(r => r.ok ? r.json() : r).then(data => {
+    }).then(parseJSON).then(data => {
         const found = data.identifiers.filter(i => i.identifier === identifier);
 
         if (found[0]) {
             return getObjectDetails(found[0].uri);
         }
         throw new Error(`Object with identifier ${identifier} not found in project ${projectId}`);
-    }).then(r => r.ok ? r.json() : r).then(objData => {
+    }).then(objData => {
         if (!objData.attributeDisplayForm) {
             return uriFinder(objData);
         }
-        return getObjectDetails(objData.attributeDisplayForm.content.formOf).then(r => r.ok ? r.json() : r).then(objectData => {
+        return getObjectDetails(objData.attributeDisplayForm.content.formOf).then(objectData => {
             return uriFinder(objectData);
         });
     });

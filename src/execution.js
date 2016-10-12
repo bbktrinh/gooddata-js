@@ -4,7 +4,8 @@ import md5 from 'md5';
 import {
     ajax,
     post,
-    get as xhrGet
+    get as xhrGet,
+    parseJSON
 } from './xhr';
 
 import Rules from './utils/rules';
@@ -92,14 +93,7 @@ export function getData(projectId, columns, executionConfiguration = {}, setting
     return post('/gdc/internal/projects/' + projectId + '/experimental/executions', {
         body: JSON.stringify(request)
     })
-    .then(r => {
-        if (!r.ok) {
-            const err = new Error(r.statusText);
-            err.response = r;
-            throw err;
-        }
-        return r.json();
-    })
+    .then(parseJSON)
     .then(function resolveSimpleExecution(result) {
         executedReport.headers = wrapMeasureIndexesFromMappings(
             get(executionConfiguration, 'metricMappings'), result.executionResult.headers);
@@ -107,12 +101,6 @@ export function getData(projectId, columns, executionConfiguration = {}, setting
         // Start polling on url returned in the executionResult for tabularData
         return ajax(result.executionResult.tabularDataResult, settings);
     }).then(r => {
-        if (!r.ok) {
-            const err = new Error(r.statusText);
-            err.response = r;
-            throw err;
-        }
-
         if (r.status === 204) {
             return {
                 status: r.status,
@@ -509,7 +497,7 @@ const getOriginalMetricFormats = (mdObj) => {
         map(get(mdObj, 'buckets.measures'), ({ measure }) => measure),
         (measure) => {
             if (measure.showPoP === true || measure.measureFilters.length > 0) {
-                return xhrGet(measure.objectUri).then(r => r.json()).then((obj) => {
+                return xhrGet(measure.objectUri).then((obj) => {
                     return {
                         ...measure,
                         format: get(obj, 'metric.content.format', measure.format)
