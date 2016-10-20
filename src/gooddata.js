@@ -24,5 +24,7 @@ import * as catalogue from './catalogue';
  * @module sdk
  * @class sdk
  */
-export default { config, xhr, user, md, execution, project, catalogue };
+const gooddata = { config, xhr, user, md, execution, project, catalogue };
+export default gooddata;
+module.exports = gooddata;
 
