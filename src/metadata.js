@@ -222,7 +222,7 @@ export function getFolders(projectId, type) {
     function _getFolders(pId, t) {
         const typeURL = t ? '?type=' + t : '';
 
-        return get('/gdc/md/' + pId + '/query/folders' + typeURL).then(r => r.ok ? r.json() : r).then(getIn('query.entries'));
+        return get('/gdc/md/' + pId + '/query/folders' + typeURL).then(getIn('query.entries'));
     }
 
     switch (type) {
@@ -234,7 +234,7 @@ export function getFolders(projectId, type) {
         default:
             return Promise.all([_getFolders(projectId, 'fact'),
                          _getFolders(projectId, 'metric'),
-                         getDimensions(projectId)]) // TODO add r.json step
+                         getDimensions(projectId)])
             .then((facts, metrics, attributes) => {
                 return { fact: facts, metric: metrics, attribute: attributes };
             });
@@ -260,7 +260,7 @@ export function getFoldersWithItems(projectId, type) {
         // array of links to the metadata objects representing the metrics.
         // @return the array of promises
         function getMetricItemsDetails(array) {
-            return Promise.all(array.map(getObjectDetails)).then((...metricArgs) => { //TODO add r.json step
+            return Promise.all(array.map(getObjectDetails)).then((...metricArgs) => {
                 return metricArgs.map(item => item.metric);
             });
         }
@@ -301,7 +301,7 @@ export function getFoldersWithItems(projectId, type) {
         const foldersTitles = mapBy(folders, 'title');
 
         // fetch details for each folder
-        Promise.all(foldersLinks.map(getObjectDetails)).then((...folderDetails) => { // TODO add map to r.json
+        return Promise.all(foldersLinks.map(getObjectDetails)).then((...folderDetails) => {
             // if attribute, just parse everything from what we've received
             // and resolve. For metrics, lookup again each metric to get its
             // identifier. If passing unsupported type, reject immediately.
@@ -321,7 +321,7 @@ export function getFoldersWithItems(projectId, type) {
                             .filter(item => attributesInFolders.indexOf(item.link) === -1)
                             .map(item => item.link);
                     // now get details of attributes in no folders
-                    Promise.all(unsortedUris.map(getObjectDetails)).then((...unsortedAttributeArgs) => { //TODO add map to r.json
+                    return Promise.all(unsortedUris.map(getObjectDetails)).then((...unsortedAttributeArgs) => { //TODO add map to r.json
                         // get unsorted attribute objects
                         const unsortedAttributes = unsortedAttributeArgs.map(attr => attr.attribute);
                         // create structure of folders with attributes
